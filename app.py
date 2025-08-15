@@ -26,7 +26,7 @@ def extract_text(file):
 # Generate questions using Gemini
 def generate_questions(prompt, num_questions, question_types):
     try:
-        model = genai.GenerativeModel("gemini-pro")  # ✅ Corrected model name
+        model = genai.GenerativeModel("gemini-pro-vision")  # ✅ Corrected model name
         response = model.generate_content(prompt)
         return response.text.strip().split('\n')[:num_questions]
     except Exception as e:
