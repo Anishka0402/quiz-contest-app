@@ -6,11 +6,11 @@ import docx
 import io
 
 # Configure Gemini API
-genai.configure(api_key="YOUR_API_KEY_HERE")  # Replace with your actual Gemini API key
+genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR")  # Replace with your actual Gemini API key
 
 # Extract text from PDF or DOCX files
 def extract_text(file):
-    if file.type == "AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4":
+    if file.type == "application/pdf":
         text = ""
         doc = fitz.open(stream=file.read(), filetype="pdf")
         for page in doc:
