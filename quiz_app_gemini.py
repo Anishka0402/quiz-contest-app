@@ -98,7 +98,7 @@ if st.button("🧪 Generate Quiz"):
 import google.generativeai as genai
 
 # Configure your Gemini API key
-genai.configure(api_key=•••••••••••••••••••••••••••••••••••••••)
+genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4")
 
 def generate_questions(prompt, num_questions=5, question_types=None):
     try:
