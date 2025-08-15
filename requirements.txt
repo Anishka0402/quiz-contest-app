@@ -3,3 +3,6 @@ pillow
 python-docx
 PyMuPDF
 pytesseract
+pymupdf
+docx2txt
+
