@@ -6,10 +6,8 @@ import io
 import base64
 from datetime import datetime
 
-# Configure Gemini API
-import os
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-# 🔴 Replace with your actual key
+# ✅ FIXED: Correct way to access secrets in Streamlit Cloud
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Extract text from PDF or DOCX
 def extract_text(file):
