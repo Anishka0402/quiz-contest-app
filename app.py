@@ -7,7 +7,9 @@ import base64
 from datetime import datetime
 
 # Configure Gemini API
-genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR")  # 🔴 Replace with your actual key
+import os
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# 🔴 Replace with your actual key
 
 # Extract text from PDF or DOCX
 def extract_text(file):
