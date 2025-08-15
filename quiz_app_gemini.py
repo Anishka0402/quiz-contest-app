@@ -13,7 +13,7 @@ import os
 
 # Gemini Setup
 import google.generativeai as genai
-genai.configure(api_key="YOUR_API_KEY_HERE")  # Replace with your key
+genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4")  # Replace with your key
 
 st.set_page_config(page_title="AI Quiz Contest App", layout="wide", initial_sidebar_state="expanded")
 
