@@ -57,6 +57,14 @@ def extract_text(file):
     elif file.name.lower().endswith((".jpg", ".jpeg", ".png")):
         image = Image.open(file)
         text = pytesseract.image_to_string(image)
+    elif file.name.lower().endswith((".jpg", ".jpeg", ".png")):
+    try:
+        import pytesseract
+        image = Image.open(file)
+        text = pytesseract.image_to_string(image)
+    except Exception:
+        st.warning("OCR for image is not supported in this deployment.")
+
     return text
 
 # Generate Quiz
