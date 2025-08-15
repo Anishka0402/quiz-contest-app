@@ -113,7 +113,7 @@ if st.button("🧪 Generate Quiz"):
         "evaluation_points": eval_points
     }
 
-    st.experimental_rerun()
+    st.rerun()
 
 # Quiz Interface
 if st.session_state.quiz_data:
