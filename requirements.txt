@@ -6,4 +6,8 @@ pytesseract
 pymupdf
 docx2txt
 google-generativeai
+streamlit
+google-generativeai
+PyMuPDF
+python-docx
 
