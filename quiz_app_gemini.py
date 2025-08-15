@@ -8,7 +8,9 @@ import json
 from datetime import datetime
 import base64
 import random
+import google.generativeai as genai
 
+# Page config
 st.set_page_config(page_title="AI Quiz Contest App", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
@@ -17,7 +19,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Session init
+# Session state init
 if "quiz_data" not in st.session_state:
     st.session_state.quiz_data = {}
 if "question_bank" not in st.session_state:
@@ -25,7 +27,7 @@ if "question_bank" not in st.session_state:
 if "flashcards" not in st.session_state:
     st.session_state.flashcards = {}
 
-# Input Section
+# Input UI
 st.title("🧠 AI Quiz Generator & Study Buddy")
 st.subheader("Enter Quiz Specifications")
 
@@ -38,14 +40,14 @@ duration_per_question = st.number_input("Duration per Question (seconds)", min_v
 total_duration = st.number_input("Total Quiz Duration (seconds)", min_value=60, max_value=3600)
 eval_points = st.slider("Evaluation strictness (1=Easy, 5=Strict)", 1, 5, 3)
 
-st.subheader("📤 Upload Study Material (PDF, DOCX, Image)")
+# File upload
+st.subheader("📄 Upload Study Material (PDF, DOCX, Image)")
 uploaded_file = st.file_uploader("Upload file", type=["pdf", "docx", "png", "jpg", "jpeg"])
-
 use_uploaded = False
 if uploaded_file:
     use_uploaded = st.radio("Generate questions from:", ["Uploaded Material", "Gemini AI"], horizontal=True) == "Uploaded Material"
 
-# Extract text from uploaded file
+# Extract uploaded text
 def extract_text(file):
     text = ""
     if file.name.endswith(".pdf"):
@@ -55,67 +57,68 @@ def extract_text(file):
     elif file.name.endswith(".docx"):
         text = docx2txt.process(file)
     elif file.name.lower().endswith((".jpg", ".jpeg", ".png")):
-        image = Image.open(file)
-        text = pytesseract.image_to_string(image)
-    elif file.name.lower().endswith((".jpg", ".jpeg", ".png")):
         try:
-            import pytesseract
             image = Image.open(file)
             text = pytesseract.image_to_string(image)
         except Exception:
             st.warning("OCR for image is not supported in this deployment.")
-
     return text
 
-# Generate Quiz
+# Gemini API setup
+genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4")  # Replace with your actual key in double quotes
+
+# Generate structured questions
+def generate_questions(prompt, num_questions, question_types):
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content(prompt)
+        lines = response.text.strip().split('\n')
+
+        questions = []
+        for line in lines:
+            if len(questions) >= num_questions:
+                break
+            if ":" in line:
+                parts = line.split(":", 1)
+                question_text = parts[1].strip()
+                options = ["Option A", "Option B", "Option C", "Option D"]
+                answer = random.choice(options)
+                questions.append({
+                    "question": question_text,
+                    "options": options,
+                    "answer": answer
+                })
+        return questions
+    except Exception as e:
+        return [{"question": f"Error generating questions: {e}", "options": ["-"], "answer": "-"}]
+
+# Generate quiz
 if st.button("🧪 Generate Quiz"):
     if not question_types:
         st.error("⚠️ Please select at least one question type.")
         st.stop()
 
-    with st.spinner("⚙️ Generating quiz using Gemini AI..."):
-        # Create base prompt from uploaded content or topic info
-        base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else \
-            f"Generate {num_questions} {', '.join(question_types)} questions for grade {grade}, subject {subject}, topic {topic}."
+    st.success("Generating Quiz...")
 
-        # Generate quiz using Gemini
-        quiz = generate_questions(base_text, num_questions, question_types)
+    prompt = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else \
+        f"Generate {num_questions} {question_types[0]} questions for grade {grade} on the topic '{topic}' in subject '{subject}'. " \
+        f"Format each question as: Question: ..., Options: A) ... B) ... C) ... D) ..., Answer: ..."
 
-        # Handle errors
-        if not quiz or "Error" in quiz[0]:
-            st.error("❌ Failed to generate quiz questions. Check your API key or input.")
-            st.stop()
+    quiz = generate_questions(prompt, num_questions, question_types)
 
-        # Save quiz to session and rerun
-        st.session_state.quiz_data = {
-            "questions": quiz,
-            "duration": quiz_duration,
-            "per_question_duration": per_question_duration,
-            "evaluation_points": evaluation_points
-        }
-        st.success("✅ Quiz generated successfully!")
-        st.rerun()
-import google.generativeai as genai
+    st.session_state.quiz_data = {
+        "questions": quiz,
+        "duration": total_duration,
+        "per_question_duration": duration_per_question,
+        "evaluation_points": eval_points
+    }
 
-# Configure your Gemini API key
-genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4")
-
-def generate_questions(prompt, num_questions=5, question_types=None):
-    try:
-        model = genai.GenerativeModel("gemini-pro")
-        question_type_str = ", ".join(question_types or [])
-        full_prompt = f"Generate {num_questions} {question_type_str} questions based on the following:\n\n{prompt}"
-        
-        response = model.generate_content(full_prompt)
-        return response.text.strip().split("\n\n")
-    except Exception as e:
-        return [f"Error generating questions: {str(e)}"]
+    st.experimental_rerun()
 
 # Quiz Interface
 if st.session_state.quiz_data:
     st.subheader("📝 Quiz Preview")
     questions = st.session_state.quiz_data['questions']
-    user_answers = []
 
     for idx, q in enumerate(questions):
         with st.expander(f"Q{idx+1}: {q['question']}", expanded=True):
@@ -140,7 +143,7 @@ if st.session_state.quiz_data:
         st.warning(f"📉 Mistakes: {wrong}")
         st.success(f"🏅 Grade: {grade_score}/10")
 
-        st.subheader("🧩 Weak Areas")
+        st.subheader("🧹 Weak Areas")
         for t in incorrect_topics:
             st.write(f"❌ {t}")
 
@@ -158,7 +161,7 @@ if st.session_state.quiz_data:
                     st.write(f"**Q:** {card['front']}")
                     st.write(f"**A:** {card['back']}")
 
-# Create Flashcards & Question Bank
+# Sidebar Tools
 st.sidebar.header("📁 Resources")
 if st.sidebar.button("📌 Create Custom Question"):
     with st.sidebar.form("create_q"):
