@@ -96,7 +96,7 @@ if st.button("🧪 Generate Quiz"):
             "timestamp": datetime.now().isoformat()
         }
     }
-    st.experimental_rerun()
+    st.rerun()
 
 # Quiz Interface
 if st.session_state.quiz_data:
