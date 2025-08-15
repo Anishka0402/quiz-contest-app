@@ -70,9 +70,13 @@ genai.configure(api_key="AIzaSyC7KKh5QQxwWuOLDaC1wsmQjDLOcgDMHR4")  # Replace wi
 # Generate structured questions
 def generate_questions(prompt, num_questions, question_types):
     try:
-        model = genai.GenerativeModel("gemini-pro")
-        response = model.generate_content(prompt)
+        model = genai.GenerativeModel(model_name="models/gemini-pro")
+        response = model.generate_content([prompt])
         lines = response.text.strip().split('\n')
+        available_models = genai.list_models()
+        for model in available_models:
+            st.write(f"✅ Available: {model.name}")
+
 
         questions = []
         for line in lines:
