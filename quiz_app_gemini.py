@@ -72,22 +72,45 @@ if st.button("🧪 Generate Quiz"):
     if not question_types:
         st.error("⚠️ Please select at least one question type.")
         st.stop()
-    
-    st.success("Generating Quiz... (mock implementation)")
-    
-    base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else \
-        f"Generate {num_questions} {question_types[0]} questions for grade {grade}, subject {subject}, topic {topic}."
-    
-    # Generate quiz from Gemini (mock or real)
-    quiz = generate_questions(base_text, num_questions, question_types)
-    
-    st.session_state.quiz_data = {
-        "questions": quiz,
-        "duration": quiz_duration,
-        "per_question_duration": per_question_duration,
-        "evaluation_points": evaluation_points
-    }
-    st.rerun()
+
+    with st.spinner("⚙️ Generating quiz using Gemini AI..."):
+        # Create base prompt from uploaded content or topic info
+        base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else \
+            f"Generate {num_questions} {', '.join(question_types)} questions for grade {grade}, subject {subject}, topic {topic}."
+
+        # Generate quiz using Gemini
+        quiz = generate_questions(base_text, num_questions, question_types)
+
+        # Handle errors
+        if not quiz or "Error" in quiz[0]:
+            st.error("❌ Failed to generate quiz questions. Check your API key or input.")
+            st.stop()
+
+        # Save quiz to session and rerun
+        st.session_state.quiz_data = {
+            "questions": quiz,
+            "duration": quiz_duration,
+            "per_question_duration": per_question_duration,
+            "evaluation_points": evaluation_points
+        }
+        st.success("✅ Quiz generated successfully!")
+        st.rerun()
+import google.generativeai as genai
+
+# Configure your Gemini API key
+genai.configure(api_key=•••••••••••••••••••••••••••••••••••••••)
+
+def generate_questions(prompt, num_questions=5, question_types=None):
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        question_type_str = ", ".join(question_types or [])
+        full_prompt = f"Generate {num_questions} {question_type_str} questions based on the following:\n\n{prompt}"
+        
+        response = model.generate_content(full_prompt)
+        return response.text.strip().split("\n\n")
+    except Exception as e:
+        return [f"Error generating questions: {str(e)}"]
+
 # Quiz Interface
 if st.session_state.quiz_data:
     st.subheader("📝 Quiz Preview")
