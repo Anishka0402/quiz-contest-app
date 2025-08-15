@@ -69,35 +69,25 @@ def extract_text(file):
 
 # Generate Quiz
 if st.button("🧪 Generate Quiz"):
+    if not question_types:
+        st.error("⚠️ Please select at least one question type.")
+        st.stop()
+    
     st.success("Generating Quiz... (mock implementation)")
-    base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else f"Generate {num_questions} {question_types[0]} questions on {topic}"
-
-    # MOCK QUESTION GENERATION
-    questions = []
-    for i in range(int(num_questions)):
-        q = {
-            "question": f"{i+1}. {topic} sample question?",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "answer": "Option A",
-            "user_answer": None,
-            "time_taken": 0
-        }
-        questions.append(q)
-
+    
+    base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else \
+        f"Generate {num_questions} {question_types[0]} questions for grade {grade}, subject {subject}, topic {topic}."
+    
+    # Generate quiz from Gemini (mock or real)
+    quiz = generate_questions(base_text, num_questions, question_types)
+    
     st.session_state.quiz_data = {
-        "questions": questions,
-        "meta": {
-            "grade": grade,
-            "subject": subject,
-            "topic": topic,
-            "types": question_types,
-            "duration": total_duration,
-            "eval_points": eval_points,
-            "timestamp": datetime.now().isoformat()
-        }
+        "questions": quiz,
+        "duration": quiz_duration,
+        "per_question_duration": per_question_duration,
+        "evaluation_points": evaluation_points
     }
     st.rerun()
-
 # Quiz Interface
 if st.session_state.quiz_data:
     st.subheader("📝 Quiz Preview")
