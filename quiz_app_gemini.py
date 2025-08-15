@@ -6,6 +6,8 @@ import pytesseract
 from PIL import Image
 import json
 from datetime import datetime
+import base64
+import random
 
 st.set_page_config(page_title="AI Quiz Contest App", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
@@ -43,16 +45,36 @@ use_uploaded = False
 if uploaded_file:
     use_uploaded = st.radio("Generate questions from:", ["Uploaded Material", "Gemini AI"], horizontal=True) == "Uploaded Material"
 
+# Extract text from uploaded file
+def extract_text(file):
+    text = ""
+    if file.name.endswith(".pdf"):
+        pdf = fitz.open(stream=file.read(), filetype="pdf")
+        for page in pdf:
+            text += page.get_text()
+    elif file.name.endswith(".docx"):
+        text = docx2txt.process(file)
+    elif file.name.lower().endswith((".jpg", ".jpeg", ".png")):
+        image = Image.open(file)
+        text = pytesseract.image_to_string(image)
+    return text
+
+# Generate Quiz
 if st.button("🧪 Generate Quiz"):
     st.success("Generating Quiz... (mock implementation)")
-    # Placeholder for Gemini API / material parsing logic
+    base_text = extract_text(uploaded_file) if (uploaded_file and use_uploaded) else f"Generate {num_questions} {question_types[0]} questions on {topic}"
+
+    # MOCK QUESTION GENERATION
     questions = []
     for i in range(int(num_questions)):
-        questions.append({
-            "question": f"Sample {question_types[0]} Question {i+1} on {topic}",
-            "options": ["A", "B", "C", "D"],
-            "answer": "A"
-        })
+        q = {
+            "question": f"{i+1}. {topic} sample question?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "answer": "Option A",
+            "user_answer": None,
+            "time_taken": 0
+        }
+        questions.append(q)
 
     st.session_state.quiz_data = {
         "questions": questions,
@@ -68,15 +90,78 @@ if st.button("🧪 Generate Quiz"):
     }
     st.experimental_rerun()
 
-# Display Quiz
+# Quiz Interface
 if st.session_state.quiz_data:
     st.subheader("📝 Quiz Preview")
-    for idx, q in enumerate(st.session_state.quiz_data['questions']):
-        st.markdown(f"**Q{idx+1}:** {q['question']}")
-        if "MCQ" in q['question']:
-            st.radio("Choose one:", q['options'], key=f"q_{idx}")
+    questions = st.session_state.quiz_data['questions']
+    user_answers = []
 
-    st.button("🚀 Submit Quiz", key="submit_quiz")
+    for idx, q in enumerate(questions):
+        with st.expander(f"Q{idx+1}: {q['question']}", expanded=True):
+            choice = st.radio("Choose one:", q['options'], key=f"q_{idx}")
+            questions[idx]['user_answer'] = choice
 
-# Placeholder for evaluation, flashcards, download features, etc.
-# Will be implemented in next steps.
+    if st.button("🚀 Submit Quiz"):
+        right, wrong = 0, 0
+        incorrect_topics = []
+        for q in questions:
+            if q['user_answer'] == q['answer']:
+                right += 1
+            else:
+                wrong += 1
+                incorrect_topics.append(q['question'])
+
+        accuracy = right / len(questions) * 100
+        grade_score = round((accuracy / 100) * 10, 2)
+
+        st.success(f"✅ Score: {right}/{len(questions)}")
+        st.info(f"🎯 Accuracy: {accuracy:.2f}%")
+        st.warning(f"📉 Mistakes: {wrong}")
+        st.success(f"🏅 Grade: {grade_score}/10")
+
+        st.subheader("🧩 Weak Areas")
+        for t in incorrect_topics:
+            st.write(f"❌ {t}")
+
+        st.subheader("🧠 Recap Flashcards")
+        for idx, q in enumerate(questions):
+            if q['user_answer'] != q['answer']:
+                card = {
+                    "topic": topic,
+                    "front": q['question'],
+                    "back": q['answer'],
+                    "created_at": datetime.now().isoformat()
+                }
+                st.session_state.flashcards[f"card_{idx}"] = card
+                with st.expander(f"📇 Flashcard {idx+1}"):
+                    st.write(f"**Q:** {card['front']}")
+                    st.write(f"**A:** {card['back']}")
+
+# Create Flashcards & Question Bank
+st.sidebar.header("📁 Resources")
+if st.sidebar.button("📌 Create Custom Question"):
+    with st.sidebar.form("create_q"):
+        q_text = st.text_input("Enter Question")
+        q_ans = st.text_input("Correct Answer")
+        q_type = st.selectbox("Question Type", question_types)
+        submitted = st.form_submit_button("Add to Bank")
+        if submitted:
+            uid = f"q_{random.randint(1000,9999)}"
+            st.session_state.question_bank[uid] = {
+                "question": q_text,
+                "answer": q_ans,
+                "type": q_type
+            }
+            st.success("Question added!")
+
+if st.sidebar.button("📂 Download Question Bank"):
+    content = json.dumps(st.session_state.question_bank, indent=2)
+    b64 = base64.b64encode(content.encode()).decode()
+    href = f'<a href="data:application/json;base64,{b64}" download="question_bank.json">📥 Download JSON</a>'
+    st.sidebar.markdown(href, unsafe_allow_html=True)
+
+if st.sidebar.button("📂 Download Flashcards"):
+    content = json.dumps(st.session_state.flashcards, indent=2)
+    b64 = base64.b64encode(content.encode()).decode()
+    href = f'<a href="data:application/json;base64,{b64}" download="flashcards.json">📥 Download Flashcards</a>'
+    st.sidebar.markdown(href, unsafe_allow_html=True)
